@@ -2,7 +2,7 @@
  * @Author: kasora 
  * @Date: 2017-09-28 20:46:42 
  * @Last Modified by: kasora
- * @Last Modified time: 2017-10-08 19:48:25
+ * @Last Modified time: 2017-10-08 19:59:41
  */
 'use strict';
 
@@ -14,7 +14,7 @@ let config = {
   aliveMax: 3,
   aliveMin: 2,
   alpha: 0.3,
-  defaultColor: [255, 255, 255], // rgb
+  defaultColor: [255, 255, 255, 1], // rgb
   createRate: 0.1
 };
 
