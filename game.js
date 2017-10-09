@@ -2,7 +2,7 @@
  * @Author: kasora 
  * @Date: 2017-09-28 20:46:42 
  * @Last Modified by: kasora
- * @Last Modified time: 2017-10-09 14:38:47
+ * @Last Modified time: 2017-10-09 16:37:39
  */
 'use strict';
 
@@ -19,6 +19,7 @@ let config = {
   createRate: 0.08,
   mode: 'random', // String 'random' or rgba(or rgb) Array
   // mode: [131, 139, 139]
+  autoRestart: true
 };
 
 function getColor() {
@@ -53,7 +54,11 @@ function init(canvas) {
   }
   data[1][1] = [125, 125, 125, 0.5];
   data[1][3] = [125, 125, 125, 0.5];
-  return data;
+
+  let dataList = [];
+  dataList.push(data);
+  dataList.push(getNextTick(getList(data)));
+  return dataList;
 }
 
 function draw(canvas, data) {
@@ -77,6 +82,17 @@ function isEmpty(block) {
   for (let i = 0; i < block.length; i++) {
     if (block[i] !== config.background[i]) {
       return false;
+    }
+  }
+  return true;
+}
+
+function isDead(blockData1, blockData2) {
+  for (let i = 0; i < config.heightBlocks; i++) {
+    for (let j = 0; j < config.widthBlocks; j++) {
+      if (isEmpty(blockData1[i][j]) !== isEmpty(blockData2[i][j])) {
+        return false;
+      }
     }
   }
   return true;
@@ -112,7 +128,7 @@ function createData(blockList) {
   return data;
 }
 
-function nextTick(blockList) {
+function getNextTick(blockList) {
   let dataCount = [];
   let data = [];
   for (let i = 0; i < config.heightBlocks; i++) {
@@ -148,10 +164,13 @@ function nextTick(blockList) {
 
 function startGame() {
   let canvas = document.getElementById("game");
-  let data = init(canvas);
+  let dataList = init(canvas);
   setInterval(function () {
-    let blockList = getList(data);
-    data = nextTick(blockList);
-    draw(canvas, data);
+    draw(canvas, dataList[1]);
+    dataList.push(getNextTick(getList(dataList[1])));
+    let preData = dataList.shift();
+    if (config.autoRestart && isDead(dataList[1], preData)) {
+      dataList = init(canvas);
+    }
   }, config.tick);
 }
