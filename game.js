@@ -2,43 +2,47 @@
  * @Author: kasora 
  * @Date: 2017-09-28 20:46:42 
  * @Last Modified by: kasora
- * @Last Modified time: 2017-10-09 16:37:39
+ * @Last Modified time: 2017-10-09 18:31:54
  */
 'use strict';
 
 let config = {
   size: 10,
-  tick: 100,
+  tick: 120,
   heightBlocks: 'loading',
   widthBlocks: 'loading',
   aliveMax: 3,
   aliveMin: 2,
   alpha: 0.4,
   background: [255, 255, 255, 1],
-  // background: [54, 54, 54, 1], // rgba or rgb
+  // background: [54, 54, 54, 1], // rgba
   createRate: 0.08,
   mode: 'random', // String 'random' or rgba(or rgb) Array
-  // mode: [131, 139, 139]
-  autoRestart: true
+  // mode: [131, 139, 139],
+  autoRestart: true,
+  restartTime: 2500
 };
 
 function getColor() {
   return [Math.random() * 255, Math.random() * 255, Math.random() * 255, config.alpha]
 }
 
-function init(canvas) {
+function initConfig() {
   config.heightBlocks = parseInt(document.body.clientHeight / config.size) + 1;
   config.widthBlocks = parseInt(document.body.clientWidth / config.size) + 1;
-  canvas.width = document.body.clientWidth;
-  canvas.height = document.body.clientHeight;
+  config.jump = config.alpha / (config.restartTime / config.tick);
 
-  if (config.background.length === 3) {
-    config.background.push(config.alpha);
-  }
   if (Array.isArray(config.mode) && config.mode.length === 3) {
     config.mode.push(config.alpha);
   }
+}
 
+function initCanvas(canvas) {
+  canvas.width = document.body.clientWidth;
+  canvas.height = document.body.clientHeight;
+}
+
+function initData() {
   let data = [];
 
   for (let i = 0; i < config.heightBlocks; i++) {
@@ -65,12 +69,16 @@ function draw(canvas, data) {
   let ctx = canvas.getContext("2d")
 
   ctx.clearRect(0, 0, config.widthBlocks * config.size, config.heightBlocks * config.size);
+  ctx.fillStyle = `rgba(${config.background.join(',')})`
+  ctx.fillRect(0, 0, config.widthBlocks * config.size, config.heightBlocks * config.size);
   if (canvas.getContext) {
     for (let i = 0; i < config.heightBlocks; i++) {
       for (let j = 0; j < config.widthBlocks; j++) {
-        let alpha = data[i][j][3];
-        let intrgba = data[i][j].map(item => parseInt(item));
-        intrgba[3] = alpha;
+        let intrgba = config.background;
+        if (!isEmpty(data[i][j])) {
+          intrgba = data[i][j].map(item => parseInt(item));
+          intrgba[3] = config.alpha;
+        }
         ctx.fillStyle = `rgba(${intrgba.join(',')})`
         ctx.fillRect(j * config.size, i * config.size, config.size, config.size);
       }
@@ -162,15 +170,52 @@ function getNextTick(blockList) {
   return data;
 }
 
+function jumpToAlpha(alpha) {
+  // 自动吸附
+  if (Math.abs(alpha - config.alpha) < config.jump) {
+    config.alpha = alpha;
+  }
+
+  // 向指定 alpha 值移动
+  config.alpha = config.alpha > alpha ?
+    config.alpha - config.jump :
+    config.alpha + config.jump
+}
+
 function startGame() {
+  initConfig();
+
+  let deadFlag = false;
+  let originAlpha = config.alpha;
+  config.alpha = 0;
+
   let canvas = document.getElementById("game");
-  let dataList = init(canvas);
+  initCanvas(canvas);
+  let dataList = initData();
   setInterval(function () {
+    // 绘制图像
     draw(canvas, dataList[1]);
+
+    // 渐显
+    if (!deadFlag) jumpToAlpha(originAlpha);
+
+    // 计算下一帧
     dataList.push(getNextTick(getList(dataList[1])));
     let preData = dataList.shift();
-    if (config.autoRestart && isDead(dataList[1], preData)) {
-      dataList = init(canvas);
+
+    if (config.autoRestart) {
+      if (deadFlag) {
+        // 渐隐
+        jumpToAlpha(0)
+
+        if (config.alpha === 0) {
+          dataList = initData();
+          deadFlag = false;
+        }
+      }
+      if (deadFlag || isDead(dataList[1], preData)) {
+        deadFlag = true;
+      }
     }
   }, config.tick);
 }
