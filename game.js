@@ -2,7 +2,7 @@
  * @Author: kasora 
  * @Date: 2017-09-28 20:46:42 
  * @Last Modified by: kasora
- * @Last Modified time: 2017-10-08 19:59:41
+ * @Last Modified time: 2017-10-09 14:38:47
  */
 'use strict';
 
@@ -13,10 +13,17 @@ let config = {
   widthBlocks: 'loading',
   aliveMax: 3,
   aliveMin: 2,
-  alpha: 0.3,
-  defaultColor: [255, 255, 255, 1], // rgb
-  createRate: 0.1
+  alpha: 0.4,
+  background: [255, 255, 255, 1],
+  // background: [54, 54, 54, 1], // rgba or rgb
+  createRate: 0.08,
+  mode: 'random', // String 'random' or rgba(or rgb) Array
+  // mode: [131, 139, 139]
 };
+
+function getColor() {
+  return [Math.random() * 255, Math.random() * 255, Math.random() * 255, config.alpha]
+}
 
 function init(canvas) {
   config.heightBlocks = parseInt(document.body.clientHeight / config.size) + 1;
@@ -24,8 +31,11 @@ function init(canvas) {
   canvas.width = document.body.clientWidth;
   canvas.height = document.body.clientHeight;
 
-  if (config.defaultColor.length === 3) {
-    config.defaultColor.push(config.alpha);
+  if (config.background.length === 3) {
+    config.background.push(config.alpha);
+  }
+  if (Array.isArray(config.mode) && config.mode.length === 3) {
+    config.mode.push(config.alpha);
   }
 
   let data = [];
@@ -34,10 +44,10 @@ function init(canvas) {
     let tempRow = [];
     for (let j = 0; j < config.widthBlocks; j++) {
       tempRow.push(Math.random() < config.createRate ?
-        [Math.random() * 255, Math.random() * 255, Math.random() * 255, config.alpha] :
-        config.defaultColor
+        Array.isArray(config.mode) ? config.mode : getColor() :
+        config.background
       )
-      // tempRow.push(config.defaultColor);
+      // tempRow.push(config.background);
     }
     data.push(tempRow);
   }
@@ -53,8 +63,9 @@ function draw(canvas, data) {
   if (canvas.getContext) {
     for (let i = 0; i < config.heightBlocks; i++) {
       for (let j = 0; j < config.widthBlocks; j++) {
+        let alpha = data[i][j][3];
         let intrgba = data[i][j].map(item => parseInt(item));
-        intrgba[3] = config.alpha;
+        intrgba[3] = alpha;
         ctx.fillStyle = `rgba(${intrgba.join(',')})`
         ctx.fillRect(j * config.size, i * config.size, config.size, config.size);
       }
@@ -64,7 +75,7 @@ function draw(canvas, data) {
 
 function isEmpty(block) {
   for (let i = 0; i < block.length; i++) {
-    if (block[i] !== config.defaultColor[i]) {
+    if (block[i] !== config.background[i]) {
       return false;
     }
   }
@@ -91,7 +102,7 @@ function getList(data) {
 function createData(blockList) {
   let data = [];
   for (let i = 0; i < config.heightBlocks; i++) {
-    data.push(new Array(config.widthBlocks).fill(config.defaultColor));
+    data.push(new Array(config.widthBlocks).fill(config.background));
   }
 
   for (let blockInfo of blockList) {
@@ -106,7 +117,7 @@ function nextTick(blockList) {
   let data = [];
   for (let i = 0; i < config.heightBlocks; i++) {
     dataCount.push(new Array(config.widthBlocks).fill(0));
-    data.push(new Array(config.widthBlocks).fill(config.defaultColor));
+    data.push(new Array(config.widthBlocks).fill(config.background));
   }
   for (let blockInfo of blockList) {
     for (let i = -1; i <= 1; i++) {
@@ -127,7 +138,7 @@ function nextTick(blockList) {
   for (let i = 0; i < config.heightBlocks; i++) {
     for (let j = 0; j < config.widthBlocks; j++) {
       if (dataCount[i][j] === config.aliveMax && isEmpty(data[i][j])) {
-        data[i][j] = [Math.random() * 255, Math.random() * 255, Math.random() * 255, config.alpha]
+        data[i][j] = Array.isArray(config.mode) ? config.mode : getColor()
       }
     }
   }
